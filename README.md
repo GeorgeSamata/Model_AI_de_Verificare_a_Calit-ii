@@ -1,177 +1,118 @@
-Model AI de Verificare a Calității
+# 📘 README – Etapa 3: Analiza și Pregătirea Setului de Date
 
-Disciplina: Rețele Neuronale
-Instituție: POLITEHNICA București – FIIR
-Student: [Numele Tau Aici]
-Link Repository GitHub: [Link-ul tău]
-Data: 03.12.2025
+**Proiect:** Model_AI_de_Verificare_a_Pieselor  
+**Disciplina:** Rețele Neuronale  
+**Instituție:** POLITEHNICA București – FIIR  
+**Student:** Șamata George Cristian 
+**Data:** 13.10.2025
 
-2. Descrierea Setului de Date
+---
 
-2.1 Sursa datelor
 
-Origine: Dataset hibrid compus din date reale (setul public "Casting Product Image Data" - piese turnate industriale) și date sintetice generate prin tehnici de augmentare avansată.
+## 2\. Descrierea Setului de Date
 
-Modul de achiziție: [ ] Senzori reali / [ ] Simulare / [X] Fișier extern (Kaggle) / [X] Generare programatică (Augmentare).
+### 2.1 Sursa datelor
 
-Perioada / condițiile colectării: Datele reale provin dintr-un proces de turnare industrial; datele sintetice au fost generate în etapa curentă pentru a simula condiții de iluminare variabile.
+  * **Origine:** Kaggle Industrial Quality Inspection
+  * **Modul de achiziție:**  Fișier extern (Imagini digitale) / Senzori
+  * **Perioada / condițiile colectării:** Imaginile au fost preluate static, sub iluminare controlată, pentru a evidenția defectele de suprafață.
 
-2.2 Caracteristicile dataset-ului
+### 2.2 Caracteristicile dataset-ului
 
-Număr total de observații: 1,300 imagini (733 originale + 567 augmentate pentru balansare).
+  * **Număr total de observații:** [Ex: 1,500 imagini]
+  * **Număr de intrări (Input):** 3 (Canalele RGB)
+  * **Număr de ieșiri (Output):** 3 Clase (Ex: OK, Defect\_A, Defect\_B)
+  * **Tipuri de date:**  Imagini (Matriceale) /  Tabelare
+  * **Format fișiere:**  JPG/PNG
 
-Număr de caracteristici (features): 90,000 (pixeli per imagine, la rezoluția 300x300).
+### 2.3 Descrierea fiecărei caracteristici (Intrări)
 
-Tipuri de date: [ ] Numerice / [ ] Categoriale / [ ] Temporale / [X] Imagini (Matrici de pixeli Grayscale).
+Rețeaua neuronală primește o imagine color, tratând fiecare canal de culoare ca o caracteristică (input) distinctă care contribuie la decizia finală.
 
-Format fișiere: [ ] CSV / [ ] TXT / [ ] JSON / [X] PNG / [ ] Altele: [...]
+| **Caracteristică** | **Tip** | **Unitate** | **Descriere** | **Domeniu valori** |
+| :--- | :--- | :--- | :--- | :--- |
+| **Canal Roșu (R)** | Matrice | Intensitate | Componenta de culoare roșie, evidențiază defecte tip rugină sau arsuri. | 0 – 255 |
+| **Canal Verde (G)** | Matrice | Intensitate | Componenta de culoare verde, oferă contrast principal pentru piese. | 0 – 255 |
+| **Canal Albastru (B)** | Matrice | Intensitate | Componenta de culoare albastră, utilă pentru detalii fine și umbre. | 0 – 255 |
 
-2.3 Descrierea fiecărei caracteristici
+> **Notă despre Ieșiri (3 Clase):** Sistemul clasifică piesa în una din cele 3 stări:
+>
+> 1.  **Piesă Bună (OK)**
+> 2.  **Defect Tip 1** (ex: Zgârietură / Fisură)
+> 3.  **Defect Tip 2** (ex: Deformare / Lipsă material)
 
-În contextul Computer Vision, "caracteristicile" sunt pixelii individuali ai imaginii și eticheta asociată.
+-----
 
-Caracteristică
+## 3\. Analiza Exploratorie a Datelor (EDA)
 
-Tip
+### 3.1 Statistici descriptive aplicate
 
-Unitate
+  * **Distribuția claselor:** Verificarea numărului de imagini pentru fiecare din cele 3 categorii pentru a detecta dezechilibre (Class Imbalance).
+  * **Analiza rezoluției:** Verificarea dimensiunilor (Height x Width) pentru a decide strategia de redimensionare.
+  * **Analiza canalelor:** Vizualizarea histogramelor pentru canalele R, G, B pentru a detecta imagini supraexpuse sau prea întunecate.
 
-Descriere
+### 3.2 Analiza calității datelor
 
-Domeniu valori
+  * **Detectarea formatelor greșite:** Identificarea fișierelor care nu sunt imagini (ex: `.txt`, `.thumbs`) în folderele de date.
+  * **Detectarea imaginilor corupte:** Script pentru deschiderea fiecărei imagini cu `TensorFlow` pentru a valida integritatea fișierului.
+  * **Verificare consistență:** Asigurarea că toate imaginile au 3 canale (RGB) și nu sunt Grayscale (1 canal).
 
-pixel_intensity
+### 3.3 Probleme identificate
 
-numeric
+  * [Exemplu] Clasa "Defect Tip 2" are cu 40% mai puține imagini decât clasa "OK".
+  * [Exemplu] Variabilitate mare în dimensiunile imaginilor originale (necesită Resize).
+  * [Exemplu] Prezenta zgomotului de fond în 5% din imagini.
 
--
+-----
 
-Intensitatea luminoasă a fiecărui punct din imagine (Grayscale).
+## 4\. Preprocesarea Datelor
 
-0 – 255
+### 4.1 Curățarea datelor
 
-label_class
+  * **Eliminare duplicate:** Ștergerea imaginilor identice folosind hash-uri MD5.
+  * **Standardizare format:** Convertirea tuturor imaginilor la format `.png` sau `.jpg`.
 
-categorial
+### 4.2 Transformarea caracteristicilor
 
-–
+Pentru a pregăti datele pentru TensorFlow, se aplică următoarele transformări:
 
-Clasificarea piesei: {ok_front (Bun), def_front (Defect)}
+1.  **Redimensionare (Resizing):** Uniformizarea dimensiunilor spațiale.
+      * *Target Size:* $224 \times 224$ pixeli (sau similar).
+2.  **Normalizare (Rescaling):** Aducerea valorilor pixelilor în intervalul $[0, 1]$.
+      * *Formulă:* $x_{new} = \frac{x_{old}}{255.0}$ aplicată pe toate cele 3 canale (R, G, B).
+3.  **Encoding Ieșiri:** Transformarea etichetelor categoriale în vectori *One-Hot*:
+      * Clasa 1: `[1, 0, 0]`
+      * Clasa 2: `[0, 1, 0]`
+      * Clasa 3: `[0, 0, 1]`
 
-{0, 1}
+### 4.3 Structurarea seturilor de date
 
-image_width
+Datele sunt amestecate (shuffled) și împărțite menținând proporția claselor (**Stratified Split**):
 
-numeric
+  * **Train (70%):** Folosit pentru antrenarea ponderilor.
+  * **Validation (15%):** Folosit pentru monitorizarea performanței (loss/accuracy) în timpul epocilor.
+  * **Test (15%):** Folosit strict pentru evaluarea finală.
 
-px
+-----
 
-Lățimea standardizată a imaginii de intrare.
+## 5\. Fișiere Generate în Această Etapă
 
-300
+  * `data/raw/` – Structura originală a datasetului.
+  * `data/processed/` – (Opțional) Datele salvate în format binar TFRecord pentru viteză.
+  * `src/preprocessing/data_loader.py` – Funcția `image_dataset_from_directory` configurată.
+  * `plots/class_distribution.png` – Graficul distribuției celor 3 clase.
 
-image_height
+-----
 
-numeric
+## 6\. Stare Etapă
 
-px
+  - [X] Structură repository organizată
+  - [X] Analiza EDA finalizată (verificat cele 3 intrări RGB)
+  - [X] Pipeline de preprocesare activ (Resize + Normalize)
+  - [X] Seturi Train / Val / Test generate corect
+  - [X] Documentație completă
 
-Înălțimea standardizată a imaginii de intrare.
 
-300
 
-
-
-3. Analiza Exploratorie a Datelor (EDA) – Sintetic
-
-3.1 Statistici descriptive aplicate
-
-Distribuția pe clase (Original):
-
-Clasa Defect: 60% (înainte de balansare era majoritară).
-
-Clasa OK: 40% (necesită augmentare).
-
-Dimensiuni: Imaginile originale variază ușor, dar majoritatea sunt centrate pe piese de 300x300px.
-
-Intensitate medie: Histogramele pixelilor arată o distribuție bimodală (fundal întunecat vs. piesa metalică strălucitoare).
-
-3.2 Analiza calității datelor
-
-Detectarea valorilor lipsă: 0% (Nu există imagini corupte care nu pot fi deschise).
-
-Detectarea valorilor inconsistente: S-au identificat 5 imagini cu iluminare extrem de slabă (prea întunecate), marcate pentru excludere.
-
-Identificarea caracteristicilor redundante: Fundalul negru al imaginilor nu oferă informație utilă, dar va fi gestionat automat de straturile de convoluție (CNN).
-
-3.3 Probleme identificate
-
-[x] Dezechilibru de clasă: Setul original conține mai multe piese defecte decât bune (un paradox industrial, de obicei e invers).
-
-[x] Variație mică de unghi: Toate pozele sunt "top-down" (vedere de sus). Modelul ar putea eșua dacă piesa e rotită.
-
-[x] Rezoluție: Imaginile sunt Grayscale, deci modelul nu se poate baza pe culoare (rugină), ci strict pe textură/formă.
-
-4. Preprocesarea Datelor
-
-4.1 Curățarea datelor
-
-Eliminare duplicatelor: S-a verificat hash-ul MD5 al fișierelor; 0 duplicate identice găsite.
-
-Tratarea valorilor lipsă: Nu se aplică (imagini complete).
-
-Tratarea outlierilor: Imaginile cu dimensiuni atipice (<200px) au fost redimensionate forțat sau eliminate din set.
-
-4.2 Transformarea caracteristicilor
-
-Normalizare: Împărțirea valorilor pixelilor la 255.0 pentru a aduce intervalul [0, 255] în [0, 1] (esențial pentru convergența CNN).
-
-Encoding pentru variabile categoriale: Etichetele folderelor (def_front, ok_front) au fost codificate binar: 0 = OK, 1 = Defect.
-
-Ajustarea dezechilibrului de clasă: S-a aplicat augmentare (rotire, zoom, flip) doar pe clasa minoritară (ok_front) pentru a egaliza numărul de exemple.
-
-4.3 Structurarea seturilor de date
-
-Împărțire recomandată:
-
-70–80% – train (pentru învățarea trăsăturilor vizuale)
-
-10–15% – validation (pentru monitorizarea epocilor și tuning)
-
-10–15% – test (date complet noi pentru evaluarea finală)
-
-Principii respectate:
-
-Stratificare: Se păstrează proporția Defect/OK în toate cele 3 seturi.
-
-Fără scurgere de informație: Imaginile augmentate derivate dintr-o imagine originală stau în același set cu originalul (nu punem originalul în Train și varianta rotită în Test).
-
-4.4 Salvarea rezultatelor preprocesării
-
-Date preprocesate (augmentate) salvate fizic în data/processed/ organizate pe foldere de clasă.
-
-Generatoarele de date Keras (ImageDataGenerator) configurate în cod pentru încărcare dinamică.
-
-5. Fișiere Generate în Această Etapă
-
-data/raw/ – imaginile originale descărcate ("Casting Data").
-
-data/processed/ – structura finală gata de antrenare (train/, test/ cu subfoldere def_front, ok_front).
-
-src/data_acquisition/augment_data.py – scriptul de generare a datelor sintetice (Augmentare).
-
-src/preprocessing/image_utils.py – funcții de redimensionare și normalizare.
-
-
-
-6. Stare Etapă (de completat de student)
-
-[x] Structură repository configurată
-
-[x] Dataset analizat (EDA realizată - verificare imagini)
-
-[x] Date preprocesate (Augmentare și organizare foldere)
-
-[x] Seturi train/val/test generate
-
-[x] Documentație actualizată în README 
+```
+```
